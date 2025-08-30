@@ -1,0 +1,59 @@
+markets:
+  spread: true
+  totals: true
+  moneyline: false
+  first_half: false
+  live: false
+
+risk:
+  edge_threshold_spread_pts: 4.0
+  edge_threshold_total_pts: 4.0
+  staking: manual
+
+scope:
+  allow_fbs: true
+  allow_fcs: false
+  line_source: average_books
+
+weights:
+  injuries: high
+  situational: medium
+  matchup_efficiency: high
+  explosiveness: medium
+  weather: medium
+  sides_trends: none
+  totals_trends: none
+
+injuries:
+  qb1_out_pts: 4.0
+  qb1_limited_pts: 2.0
+  important_starter_out_pts: 2.0
+  cluster_same_unit_threshold: 2
+  cluster_same_unit_bonus_pts: 2.0
+
+situational:
+  bye_week_bonus_pts: 2.0
+  trap_game_penalty_pts: 2.0
+  east_west_travel_penalty_pts: 1.0
+
+matchups:
+  max_nudge_pts: 2.0
+  factors: [rush_o_vs_rush_d, pass_o_vs_pass_d, finishing_drives, havoc_vs_ball_security]
+
+explosiveness:
+  use_big_plays: true
+  metrics: [isoPPP, epa_explosive_pass, epa_explosive_run]
+  boost_pts: 2.0
+
+weather:
+  bad_weather_penalty_pts: 2.0
+  cold_weather_south_team_penalty_pts: 2.0
+
+totals_extremes:
+  low_total_threshold: 41
+  high_total_threshold: 63
+  extreme_edge_min_pts: 2.0
+  lean_direction: under_on_low_over_on_high
+
+home_field:
+  base_hfa_pts: 3.0
