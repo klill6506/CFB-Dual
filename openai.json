@@ -3,7 +3,7 @@
   "info": {
     "title": "CFB Dual API",
     "version": "1.0.0",
-    "description": "API for College Football Dual Model"
+    "description": "College Football Dual API for stats and analysis"
   },
   "servers": [
     {
@@ -11,72 +11,56 @@
     }
   ],
   "paths": {
-    "/": {
-      "get": {
-        "summary": "Root",
-        "responses": {
-          "200": {
-            "description": "Successful Response"
-          }
-        }
-      }
-    },
     "/games": {
       "get": {
-        "summary": "Get Games",
+        "summary": "Get games by team and year",
         "parameters": [
           {
             "name": "team",
             "in": "query",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" },
+            "description": "Team name (e.g. Alabama)"
           },
           {
             "name": "year",
             "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 2025
-            }
+            "required": true,
+            "schema": { "type": "integer" },
+            "description": "Season year (e.g. 2025)"
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful Response"
+            "description": "List of games",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "type": "object" }
+                }
+              }
+            }
           }
         }
       }
     },
-    "/predict": {
+    "/health": {
       "get": {
-        "summary": "Predict",
-        "parameters": [
-          {
-            "name": "model",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": ["conservative", "aggressive", "both"],
-              "default": "conservative"
-            }
-          },
-          {
-            "name": "year",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 2025
-            }
-          }
-        ],
+        "summary": "Health check",
         "responses": {
           "200": {
-            "description": "Successful Response"
+            "description": "API is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" }
+                  }
+                }
+              }
+            }
           }
         }
       }
