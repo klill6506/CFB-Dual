@@ -1,43 +1,56 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 import httpx
 from fetchers import CFBDClient
-from model import run_model
 
-# ✅ Ensure docs and OpenAPI are always available
+# 👇 Add servers so OpenAPI JSON is valid for GPT Builder
 app = FastAPI(
     title="CFB Dual Model API",
-    description="API for aggressive and conservative CFB betting models",
     version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
-    openapi_url="/openapi.json",
+    servers=[{"url": "https://cfbdual2.onrender.com"}]
 )
 
+
+# Helper function to fetch basic game data
 async def build_game_data(year: int):
     cfbd = CFBDClient()
     async with httpx.AsyncClient() as client:
         stats = await cfbd.get_team_season_stats(client, year=year)
         ppa = await cfbd.get_team_ppa(client, year=year)
-    return {"stats": stats, "ppa": ppa}
+        return {"stats": stats, "ppa": ppa}
+
 
 @app.get("/")
 def root():
-    return {"message": "CFB Dual API is running. Go to /docs for Swagger UI."}
+    return {"message": "Welcome to the CFB Dual Model API. See /docs for usage."}
+
+
+@app.get("/games")
+async def get_games(team: str, year: int = 2025):
+    """Fetch schedule and results for a team."""
+    client = CFBDClient()
+    async with httpx.AsyncClient() as http_client:
+        games = await client.get_games_for_team(http_client, year=year, team=team)
+    return {"team": team, "games": games}
+
 
 @app.get("/predict")
-async def predict(model: str, year: int = 2025):
+async def predict(
+    model: str = Query("conservative", enum=["conservative", "aggressive", "both"]),
+    year: int = 2025
+):
+    """Run conservative, aggressive, or both models on given season data."""
     game_data = await build_game_data(year)
 
-    if model == "aggressive":
-        result = run_model("aggressive", game_data)
-    elif model == "conservative":
-        result = run_model("conservative", game_data)
-    elif model == "both":
-        result = {
-            "aggressive": run_model("aggressive", game_data),
-            "conservative": run_model("conservative", game_data),
-        }
-    else:
-        return {"error": "Invalid model. Use aggressive, conservative, or both."}
+    conservative_score = len(game_data["stats"])  # placeholder
+    aggressive_score = len(game_data["ppa"]) * 2  # placeholder
 
-    return {"model": model, "prediction": result}
+    if model == "conservative":
+        return {"model": "conservative", "score": conservative_score}
+    elif model == "aggressive":
+        return {"model": "aggressive", "score": aggressive_score}
+    else:
+        return {
+            "model": "both",
+            "conservative": conservative_score,
+            "aggressive": aggressive_score
+        }
