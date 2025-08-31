@@ -4,27 +4,24 @@ import httpx
 from fetchers import CFBDClient
 
 app = FastAPI(
-    title="CFB Dual Model API",
-    version="1.0.0"
+    title="CFB Dual API",
+    version="1.0.0",
+    description="College Football Dual Model API (Conservative & Aggressive)"
 )
 
-
-# Force OpenAPI schema to include servers
+# --- Force OpenAPI to include servers ---
 def custom_openapi():
-    if app.openapi_schema:
-        return app.openapi_schema
     openapi_schema = get_openapi(
-        title="CFB Dual Model API",
-        version="1.0.0",
-        description="College Football Dual Model API (Conservative & Aggressive)",
+        title=app.title,
+        version=app.version,
+        description=app.description,
         routes=app.routes,
     )
+    # Explicitly set servers
     openapi_schema["servers"] = [
         {"url": "https://cfbdual2.onrender.com"}
     ]
-    app.openapi_schema = openapi_schema
-    return app.openapi_schema
-
+    return openapi_schema
 
 app.openapi = custom_openapi
 
@@ -41,28 +38,26 @@ async def build_game_data(year: int):
 # --- Routes ---
 @app.get("/")
 def root():
-    return {"message": "Welcome to the CFB Dual Model API. See /docs for usage."}
+    return {"message": "Welcome to the CFB Dual API. See /docs for usage."}
 
 
-@app.get("/games")
+@app.get("/games", summary="Get Games", description="Fetch games for a specific team and season.")
 async def get_games(team: str, year: int = 2025):
-    """Fetch schedule and results for a team."""
     client = CFBDClient()
     async with httpx.AsyncClient() as http_client:
         games = await client.get_games_for_team(http_client, year=year, team=team)
     return {"team": team, "games": games}
 
 
-@app.get("/predict")
+@app.get("/predict", summary="Predict", description="Simple prediction stub combining data sources.")
 async def predict(
     model: str = Query("conservative", enum=["conservative", "aggressive", "both"]),
     year: int = 2025
 ):
-    """Run conservative, aggressive, or both models on given season data."""
     game_data = await build_game_data(year)
 
-    conservative_score = len(game_data["stats"])  # placeholder
-    aggressive_score = len(game_data["ppa"]) * 2  # placeholder
+    conservative_score = len(game_data["stats"])  # stub
+    aggressive_score = len(game_data["ppa"]) * 2  # stub
 
     if model == "conservative":
         return {"model": "conservative", "score": conservative_score}
