@@ -11,17 +11,19 @@ app = FastAPI(
 
 # --- Force OpenAPI to include servers ---
 def custom_openapi():
+    if app.openapi_schema:
+        del app.openapi_schema  # clear cache
     openapi_schema = get_openapi(
         title=app.title,
         version=app.version,
         description=app.description,
         routes=app.routes,
     )
-    # Explicitly set servers
     openapi_schema["servers"] = [
         {"url": "https://cfbdual2.onrender.com"}
     ]
-    return openapi_schema
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
 
 app.openapi = custom_openapi
 
