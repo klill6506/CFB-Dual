@@ -1,16 +1,35 @@
 from fastapi import FastAPI, Query
+from fastapi.openapi.utils import get_openapi
 import httpx
 from fetchers import CFBDClient
 
-# 👇 Add servers so OpenAPI JSON is valid for GPT Builder
 app = FastAPI(
     title="CFB Dual Model API",
-    version="1.0.0",
-    servers=[{"url": "https://cfbdual2.onrender.com"}]
+    version="1.0.0"
 )
 
 
-# Helper function to fetch basic game data
+# Force OpenAPI schema to include servers
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(
+        title="CFB Dual Model API",
+        version="1.0.0",
+        description="College Football Dual Model API (Conservative & Aggressive)",
+        routes=app.routes,
+    )
+    openapi_schema["servers"] = [
+        {"url": "https://cfbdual2.onrender.com"}
+    ]
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi
+
+
+# --- Helper ---
 async def build_game_data(year: int):
     cfbd = CFBDClient()
     async with httpx.AsyncClient() as client:
@@ -19,6 +38,7 @@ async def build_game_data(year: int):
         return {"stats": stats, "ppa": ppa}
 
 
+# --- Routes ---
 @app.get("/")
 def root():
     return {"message": "Welcome to the CFB Dual Model API. See /docs for usage."}
