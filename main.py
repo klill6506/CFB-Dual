@@ -9,9 +9,7 @@ app = FastAPI(
 )
 
 def custom_openapi():
-    if app.openapi_schema:  # ✅ don’t rebuild if already cached
-        return app.openapi_schema
-    print("🔧 custom_openapi override is running!")  # Debug log
+    print("🔧 custom_openapi override is running!")  # Debug marker
     openapi_schema = get_openapi(
         title=app.title,
         version=app.version,
@@ -24,14 +22,12 @@ def custom_openapi():
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 
-# ✅ assign *after* defining, before routes get hit
+# Force override
 app.openapi = custom_openapi
-
 
 @app.get("/")
 async def root():
     return {"message": "CFB Dual API is running!"}
-
 
 @app.get("/games")
 async def get_games(team: str, year: int = 2025):
@@ -40,12 +36,10 @@ async def get_games(team: str, year: int = 2025):
         games = await client.get_games_for_team(http_client, year=year, team=team)
     return {"team": team, "year": year, "games": games}
 
-
 @app.get("/predict")
 async def predict(model: str = "conservative", year: int = 2025):
     cfbd = CFBDClient()
     odds = OddsClient()
-
     async with httpx.AsyncClient() as client:
         stats = await cfbd.get_team_season_stats(client, year=year)
         ppa = await cfbd.get_team_ppa(client, year=year)
@@ -63,3 +57,8 @@ async def predict(model: str = "conservative", year: int = 2025):
         "odds_count": len(odds_data),
         "prediction": "This is a stub prediction."
     }
+
+# ✅ Force schema rebuild on startup
+@app.on_event("startup")
+async def startup_event():
+    app.openapi_schema = custom_openapi()
