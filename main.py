@@ -1,66 +1,65 @@
-from fastapi import FastAPI, Query
+from fastapi import FastAPI
+from fastapi.openapi.utils import get_openapi
 import httpx
-from datetime import datetime
-from typing import Dict, Any
-
 from fetchers import CFBDClient, OddsClient
 
-app = FastAPI(title="CFB Dual API", version="1.0.0")
+app = FastAPI(
+    title="CFB Dual API",
+    version="1.0.0"
+)
 
-# ---------- Helpers ----------
+# --- Force OpenAPI schema with servers ---
+def custom_openapi():
+    print("🔧 custom_openapi override is running!")  # Debug log
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description="API for College Football Dual Model",
+        routes=app.routes,
+    )
+    # ✅ Explicit servers block
+    openapi_schema["servers"] = [
+        {"url": "https://cfbdual2.onrender.com"}
+    ]
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
 
-async def build_game_data(year: int) -> Dict[str, Any]:
-    """Fetches combined CFB stats, ratings, and odds data for a given year."""
-    cfbd = CFBDClient()
-    odds_client = OddsClient()
+# Assign override
+app.openapi = custom_openapi
 
-    async with httpx.AsyncClient() as client:
-        stats = await cfbd.get_team_season_stats(client, year=year)
-        sp_ratings = await cfbd.get_sp_ratings(client, year=year)
-        ppa = await cfbd.get_team_ppa(client, year=year)
-        odds = await odds_client.get_odds(client)
-
-    return {
-        "year": year,
-        "stats": stats,
-        "sp_ratings": sp_ratings,
-        "ppa": ppa,
-        "odds": odds,
-    }
-
-# ---------- Routes ----------
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to the CFB Dual API. Try /docs for available endpoints."}
+    return {"message": "CFB Dual API is running!"}
 
 
 @app.get("/games")
-async def get_games(team: str, year: int = datetime.now().year):
-    """Fetch games for a specific team and season."""
-    cfbd = CFBDClient()
-    async with httpx.AsyncClient() as client:
-        games = await cfbd.get_games_for_team(client, year=year, team=team)
+async def get_games(team: str, year: int = 2025):
+    client = CFBDClient()
+    async with httpx.AsyncClient() as http_client:
+        games = await client.get_games_for_team(http_client, year=year, team=team)
     return {"team": team, "year": year, "games": games}
 
 
 @app.get("/predict")
-async def predict(
-    model: str = Query("conservative", enum=["conservative", "aggressive", "both"]),
-    year: int = datetime.now().year,
-):
-    """Simple prediction stub combining data sources."""
-    game_data = await build_game_data(year)
+async def predict(model: str = "conservative", year: int = 2025):
+    cfbd = CFBDClient()
+    odds = OddsClient()
 
-    # Example model logic (placeholder – you can replace with real handicapping)
-    if model == "conservative":
-        result = {"strategy": "Low risk picks", "games_analyzed": len(game_data["stats"])}
-    elif model == "aggressive":
-        result = {"strategy": "High risk/high reward picks", "games_analyzed": len(game_data["stats"])}
-    else:  # both
-        result = {
-            "conservative": {"games_analyzed": len(game_data["stats"])},
-            "aggressive": {"games_analyzed": len(game_data["stats"])},
-        }
+    async with httpx.AsyncClient() as client:
+        stats = await cfbd.get_team_season_stats(client, year=year)
+        ppa = await cfbd.get_team_ppa(client, year=year)
+        venue_data = await cfbd.get_venues(client)
+        sp_ratings = await cfbd.get_sp_ratings(client, year=year)
+        odds_data = await odds.get_odds(client)
 
-    return {"year": year, "model": model, "result": result}
+    return {
+        "model_used": model,
+        "year": year,
+        "stats_count": len(stats),
+        "ppa_count": len(ppa),
+        "venues_count": len(venue_data),
+        "sp_ratings_count": len(sp_ratings),
+        "odds_count": len(odds_data),
+        "prediction": "This is a stub prediction."
+    }
