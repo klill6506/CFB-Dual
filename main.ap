@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.openapi.utils import get_openapi
 import httpx
 from fetchers import CFBDClient, OddsClient
@@ -8,9 +8,11 @@ app = FastAPI(
     version="1.0.0"
 )
 
-
 # --- Force OpenAPI schema with servers ---
 def custom_openapi():
+    if app.openapi_schema:  # ensure caching
+        return app.openapi_schema
+
     openapi_schema = get_openapi(
         title=app.title,
         version=app.version,
@@ -24,14 +26,16 @@ def custom_openapi():
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 
-# Assign override
 app.openapi = custom_openapi
 
+# --- Health check route ---
+@app.head("/")
+async def head_root():
+    return Response(status_code=200)
 
 @app.get("/")
 async def root():
     return {"message": "CFB Dual API is running!"}
-
 
 @app.get("/games")
 async def get_games(team: str, year: int = 2025):
@@ -39,7 +43,6 @@ async def get_games(team: str, year: int = 2025):
     async with httpx.AsyncClient() as http_client:
         games = await client.get_games_for_team(http_client, year=year, team=team)
     return {"games": games}
-
 
 @app.get("/predict")
 async def predict(model: str = "conservative", year: int = 2025):
