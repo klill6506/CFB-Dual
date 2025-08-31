@@ -1,0 +1,74 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "CFB Dual API",
+    "version": "1.0.0",
+    "description": "API for College Football Dual Model"
+  },
+  "servers": [
+    {
+      "url": "https://cfbdual2.onrender.com"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Root",
+        "operationId": "root_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          }
+        }
+      }
+    },
+    "/games": {
+      "get": {
+        "summary": "Get Games",
+        "parameters": [
+          {
+            "name": "team",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 2025 }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Successful Response" }
+        }
+      }
+    },
+    "/predict": {
+      "get": {
+        "summary": "Predict",
+        "parameters": [
+          {
+            "name": "model",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["conservative", "aggressive", "both"],
+              "default": "conservative"
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 2025 }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Successful Response" }
+        }
+      }
+    }
+  }
+}
