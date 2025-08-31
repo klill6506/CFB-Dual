@@ -1,73 +1,49 @@
 from fastapi import FastAPI, Query
 from fastapi.openapi.utils import get_openapi
+from fastapi.responses import JSONResponse
 import httpx
-from fetchers import CFBDClient
+from fetchers import CFBDClient, OddsClient
 
-app = FastAPI(
-    title="CFB Dual API",
-    version="1.0.0",
-    description="College Football Dual Model API (Conservative & Aggressive)"
-)
+app = FastAPI(title="CFB Dual API", version="1.0.0")
 
-# --- Force OpenAPI to include servers ---
-def custom_openapi():
-    if app.openapi_schema:
-        del app.openapi_schema  # clear cache
-    openapi_schema = get_openapi(
-        title=app.title,
-        version=app.version,
-        description=app.description,
-        routes=app.routes,
-    )
-    openapi_schema["servers"] = [
-        {"url": "https://cfbdual2.onrender.com"}
-    ]
-    app.openapi_schema = openapi_schema
-    return app.openapi_schema
+# --- Root ---
+@app.get("/")
+async def root():
+    return {"message": "CFB Dual API is running!"}
 
-app.openapi = custom_openapi
-
-
-# --- Helper ---
-async def build_game_data(year: int):
+# --- Build combined data ---
+async def build_game_data(year: int = 2025):
     cfbd = CFBDClient()
     async with httpx.AsyncClient() as client:
+        games = await cfbd.get_games_for_team(client, year=year, team="Georgia")
+        venues = await cfbd.get_venues(client)
+        ratings = await cfbd.get_sp_ratings(client, year=year)
         stats = await cfbd.get_team_season_stats(client, year=year)
         ppa = await cfbd.get_team_ppa(client, year=year)
-        return {"stats": stats, "ppa": ppa}
+    return {"games": games, "venues": venues, "ratings": ratings, "stats": stats, "ppa": ppa}
 
-
-# --- Routes ---
-@app.get("/")
-def root():
-    return {"message": "Welcome to the CFB Dual API. See /docs for usage."}
-
-
+# --- Games endpoint ---
 @app.get("/games", summary="Get Games", description="Fetch games for a specific team and season.")
 async def get_games(team: str, year: int = 2025):
     client = CFBDClient()
     async with httpx.AsyncClient() as http_client:
         games = await client.get_games_for_team(http_client, year=year, team=team)
-    return {"team": team, "games": games}
+    return {"games": games}
 
-
+# --- Predict endpoint ---
 @app.get("/predict", summary="Predict", description="Simple prediction stub combining data sources.")
-async def predict(
-    model: str = Query("conservative", enum=["conservative", "aggressive", "both"]),
-    year: int = 2025
-):
+async def predict(model: str = Query("conservative", enum=["conservative", "aggressive", "both"]), year: int = 2025):
     game_data = await build_game_data(year)
+    return {"model": model, "year": year, "summary": f"Prediction using {model} model", "data": game_data}
 
-    conservative_score = len(game_data["stats"])  # stub
-    aggressive_score = len(game_data["ppa"]) * 2  # stub
-
-    if model == "conservative":
-        return {"model": "conservative", "score": conservative_score}
-    elif model == "aggressive":
-        return {"model": "aggressive", "score": aggressive_score}
-    else:
-        return {
-            "model": "both",
-            "conservative": conservative_score,
-            "aggressive": aggressive_score
-        }
+# --- Override OpenAPI to include servers ---
+@app.get("/openapi.json", include_in_schema=False)
+async def custom_openapi_endpoint():
+    schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    schema["servers"] = [{"url": "https://cfbdual2.onrender.com"}]
+    return JSONResponse(schema)
