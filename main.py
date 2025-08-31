@@ -1,53 +1,66 @@
 from fastapi import FastAPI, Query
 import httpx
-import os
-from fetchers import CFBDClient
+from datetime import datetime
+from typing import Dict, Any
 
-app = FastAPI()
+from fetchers import CFBDClient, OddsClient
 
+app = FastAPI(title="CFB Dual API", version="1.0.0")
 
-# -------------------------------
-# Debugging Endpoint
-# -------------------------------
-@app.get("/debug-env")
-def debug_env():
-    return {
-        "cfbd_key_set": bool(os.getenv("CFBD_KEY")),
-        "odds_key_set": bool(os.getenv("ODDS_KEY"))
-    }
+# ---------- Helpers ----------
 
-
-# -------------------------------
-# Helper function to collect game data
-# -------------------------------
-async def build_game_data(year: int = 2024):
+async def build_game_data(year: int) -> Dict[str, Any]:
+    """Fetches combined CFB stats, ratings, and odds data for a given year."""
     cfbd = CFBDClient()
+    odds_client = OddsClient()
+
     async with httpx.AsyncClient() as client:
         stats = await cfbd.get_team_season_stats(client, year=year)
-        sp = await cfbd.get_sp_ratings(client, year=year)
+        sp_ratings = await cfbd.get_sp_ratings(client, year=year)
         ppa = await cfbd.get_team_ppa(client, year=year)
-    return {"stats": stats, "sp": sp, "ppa": ppa}
+        odds = await odds_client.get_odds(client)
+
+    return {
+        "year": year,
+        "stats": stats,
+        "sp_ratings": sp_ratings,
+        "ppa": ppa,
+        "odds": odds,
+    }
+
+# ---------- Routes ----------
+
+@app.get("/")
+async def root():
+    return {"message": "Welcome to the CFB Dual API. Try /docs for available endpoints."}
 
 
-# -------------------------------
-# Prediction Endpoint
-# -------------------------------
+@app.get("/games")
+async def get_games(team: str, year: int = datetime.now().year):
+    """Fetch games for a specific team and season."""
+    cfbd = CFBDClient()
+    async with httpx.AsyncClient() as client:
+        games = await cfbd.get_games_for_team(client, year=year, team=team)
+    return {"team": team, "year": year, "games": games}
 
-from datetime import datetime
 
 @app.get("/predict")
-async def predict(model: str = "conservative", year: int = datetime.now().year):
+async def predict(
+    model: str = Query("conservative", enum=["conservative", "aggressive", "both"]),
+    year: int = datetime.now().year,
+):
+    """Simple prediction stub combining data sources."""
     game_data = await build_game_data(year)
-    ...
 
+    # Example model logic (placeholder – you can replace with real handicapping)
     if model == "conservative":
-        return {"model": "conservative", "result": "Conservative prediction logic TBD", "data": game_data}
+        result = {"strategy": "Low risk picks", "games_analyzed": len(game_data["stats"])}
     elif model == "aggressive":
-        return {"model": "aggressive", "result": "Aggressive prediction logic TBD", "data": game_data}
-    else:
-        return {
-            "model": "both",
-            "conservative_result": "Conservative prediction logic TBD",
-            "aggressive_result": "Aggressive prediction logic TBD",
-            "data": game_data,
+        result = {"strategy": "High risk/high reward picks", "games_analyzed": len(game_data["stats"])}
+    else:  # both
+        result = {
+            "conservative": {"games_analyzed": len(game_data["stats"])},
+            "aggressive": {"games_analyzed": len(game_data["stats"])},
         }
+
+    return {"year": year, "model": model, "result": result}
