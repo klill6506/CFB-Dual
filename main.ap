@@ -1,36 +1,43 @@
-from fastapi import FastAPI, Query
-import yaml
-from model import HandicappingModel
-from fetchers import fetch_game_data
+from fastapi import FastAPI
+import httpx
+from fetchers import CFBDClient
+from model import run_model
 
-# Initialize FastAPI app
-app = FastAPI()
+# ✅ Ensure docs and OpenAPI are always available
+app = FastAPI(
+    title="CFB Dual Model API",
+    description="API for aggressive and conservative CFB betting models",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
+)
 
-# Load config by model choice
-def load_config(choice: str):
-    filename = f"config_{choice}.yaml"
-    with open(filename, "r") as f:
-        return yaml.safe_load(f)
+async def build_game_data(year: int):
+    cfbd = CFBDClient()
+    async with httpx.AsyncClient() as client:
+        stats = await cfbd.get_team_season_stats(client, year=year)
+        ppa = await cfbd.get_team_ppa(client, year=year)
+    return {"stats": stats, "ppa": ppa}
 
-# Prediction endpoint
+@app.get("/")
+def root():
+    return {"message": "CFB Dual API is running. Go to /docs for Swagger UI."}
+
 @app.get("/predict")
-def predict(model: str = Query("conservative", enum=["aggressive", "conservative", "both"])):
-    game_data = fetch_game_data()
+async def predict(model: str, year: int = 2025):
+    game_data = await build_game_data(year)
 
-    if model == "both":
-        results = {}
-        for choice in ["aggressive", "conservative"]:
-            config = load_config(choice)
-            m = HandicappingModel(config, label=choice)
-            results[choice] = m.calculate_edge(game_data)
-        return results
+    if model == "aggressive":
+        result = run_model("aggressive", game_data)
+    elif model == "conservative":
+        result = run_model("conservative", game_data)
+    elif model == "both":
+        result = {
+            "aggressive": run_model("aggressive", game_data),
+            "conservative": run_model("conservative", game_data),
+        }
     else:
-        config = load_config(model)
-        m = HandicappingModel(config, label=model)
-        edge = m.calculate_edge(game_data)
-        return {model: edge}
+        return {"error": "Invalid model. Use aggressive, conservative, or both."}
 
-# Local testing (not used by Render)
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=10000)
+    return {"model": model, "prediction": result}
