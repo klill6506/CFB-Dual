@@ -17,14 +17,26 @@
         "operationId": "root_get",
         "responses": {
           "200": {
-            "description": "Successful Response"
+            "description": "Root endpoint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" }
+                  }
+                },
+                "example": { "message": "CFB Dual API is running!" }
+              }
+            }
           }
         }
       }
     },
     "/games": {
       "get": {
-        "summary": "Get Games",
+        "summary": "Get games for a team",
+        "operationId": "games_get",
         "parameters": [
           {
             "name": "team",
@@ -40,23 +52,36 @@
           }
         ],
         "responses": {
-          "200": { "description": "Successful Response" }
+          "200": {
+            "description": "Games list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "games": {
+                      "type": "array",
+                      "items": { "type": "string" }
+                    }
+                  }
+                },
+                "example": { "games": ["Game1", "Game2"] }
+              }
+            }
+          }
         }
       }
     },
     "/predict": {
       "get": {
-        "summary": "Predict",
+        "summary": "Run prediction",
+        "operationId": "predict_get",
         "parameters": [
           {
             "name": "model",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "string",
-              "enum": ["conservative", "aggressive", "both"],
-              "default": "conservative"
-            }
+            "schema": { "type": "string", "default": "conservative" }
           },
           {
             "name": "year",
@@ -66,7 +91,26 @@
           }
         ],
         "responses": {
-          "200": { "description": "Successful Response" }
+          "200": {
+            "description": "Prediction output",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "model_used": { "type": "string" },
+                    "year": { "type": "integer" },
+                    "prediction": { "type": "string" }
+                  }
+                },
+                "example": {
+                  "model_used": "conservative",
+                  "year": 2025,
+                  "prediction": "This is a stub prediction."
+                }
+              }
+            }
+          }
         }
       }
     }
