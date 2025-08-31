@@ -1,0 +1,17 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "CFB Dual",
+  "name_for_model": "cfb_dual",
+  "description_for_human": "Get college football game stats, schedules, and analysis.",
+  "description_for_model": "Plugin for retrieving college football games and stats by team and year. Provides historical data and health check endpoint.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://cfbdual2.onrender.com/openapi.json"
+  },
+  "logo_url": "https://cfbdual2.onrender.com/logo.png",
+  "contact_email": "support@cfbdual.com",
+  "legal_info_url": "https://cfbdual2.onrender.com/legal"
+}
