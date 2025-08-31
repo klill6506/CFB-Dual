@@ -1,34 +1,37 @@
 from fastapi import FastAPI
-from fastapi.openapi.utils import get_openapi
+from fastapi.responses import FileResponse
 import httpx
+import os
+
 from fetchers import CFBDClient, OddsClient
 
 app = FastAPI(
     title="CFB Dual API",
-    version="1.0.0"
+    version="1.0.0",
+    description="API for College Football Dual Model"
 )
 
-def custom_openapi():
-    print("🔧 custom_openapi override is running!")  # Debug marker
-    openapi_schema = get_openapi(
-        title=app.title,
-        version=app.version,
-        description="API for College Football Dual Model",
-        routes=app.routes,
-    )
-    openapi_schema["servers"] = [
-        {"url": "https://cfbdual2.onrender.com"}
-    ]
-    app.openapi_schema = openapi_schema
-    return app.openapi_schema
+# --- Serve static OpenAPI JSON files ---
+BASE_DIR = os.path.dirname(__file__)
 
-# Force override
-app.openapi = custom_openapi
+@app.get("/static-openapi.json", include_in_schema=False)
+async def get_openapi_json():
+    """Serve the manually defined openapi.json file."""
+    return FileResponse(os.path.join(BASE_DIR, "openapi.json"))
 
+@app.get("/static-openapi-schema.json", include_in_schema=False)
+async def get_openapi_schema():
+    """Serve the manually defined openapi_schema.json file."""
+    return FileResponse(os.path.join(BASE_DIR, "openapi_schema.json"))
+
+
+# --- Root endpoint ---
 @app.get("/")
 async def root():
     return {"message": "CFB Dual API is running!"}
 
+
+# --- Games endpoint ---
 @app.get("/games")
 async def get_games(team: str, year: int = 2025):
     client = CFBDClient()
@@ -36,10 +39,13 @@ async def get_games(team: str, year: int = 2025):
         games = await client.get_games_for_team(http_client, year=year, team=team)
     return {"team": team, "year": year, "games": games}
 
+
+# --- Predict endpoint ---
 @app.get("/predict")
 async def predict(model: str = "conservative", year: int = 2025):
     cfbd = CFBDClient()
     odds = OddsClient()
+
     async with httpx.AsyncClient() as client:
         stats = await cfbd.get_team_season_stats(client, year=year)
         ppa = await cfbd.get_team_ppa(client, year=year)
@@ -57,14 +63,3 @@ async def predict(model: str = "conservative", year: int = 2025):
         "odds_count": len(odds_data),
         "prediction": "This is a stub prediction."
     }
-
-# ✅ Force schema rebuild on startup
-@app.on_event("startup")
-async def startup_event():
-    app.openapi_schema = custom_openapi()
-
-from fastapi.responses import FileResponse
-
-@app.get("/schema.json", include_in_schema=False)
-async def get_schema():
-    return FileResponse("openapi_schema.json", media_type="application/json")
