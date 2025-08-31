@@ -32,7 +32,7 @@ async def build_game_data(year: int = 2024):
 # -------------------------------
 # Prediction Endpoint
 # -------------------------------
-@app.get("/predict")
+
 from datetime import datetime
 
 @app.get("/predict")
