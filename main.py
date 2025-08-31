@@ -62,3 +62,9 @@ async def predict(model: str = "conservative", year: int = 2025):
 @app.on_event("startup")
 async def startup_event():
     app.openapi_schema = custom_openapi()
+
+from fastapi.responses import FileResponse
+
+@app.get("/schema.json", include_in_schema=False)
+async def get_schema():
+    return FileResponse("openapi_schema.json", media_type="application/json")
