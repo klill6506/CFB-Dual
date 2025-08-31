@@ -8,32 +8,31 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# --- Custom OpenAPI with servers block ---
+
+# --- Force OpenAPI schema with servers ---
 def custom_openapi():
-    if app.openapi_schema:
-        return app.openapi_schema
     openapi_schema = get_openapi(
         title=app.title,
         version=app.version,
         description="API for College Football Dual Model",
         routes=app.routes,
     )
+    # ✅ Explicit servers block
     openapi_schema["servers"] = [
         {"url": "https://cfbdual2.onrender.com"}
     ]
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 
+# Assign override
 app.openapi = custom_openapi
 
 
-# --- Root endpoint ---
 @app.get("/")
 async def root():
     return {"message": "CFB Dual API is running!"}
 
 
-# --- Example games endpoint ---
 @app.get("/games")
 async def get_games(team: str, year: int = 2025):
     client = CFBDClient()
@@ -42,7 +41,6 @@ async def get_games(team: str, year: int = 2025):
     return {"games": games}
 
 
-# --- Example predict endpoint ---
 @app.get("/predict")
 async def predict(model: str = "conservative", year: int = 2025):
     cfbd = CFBDClient()
@@ -55,7 +53,6 @@ async def predict(model: str = "conservative", year: int = 2025):
         sp_ratings = await cfbd.get_sp_ratings(client, year=year)
         odds_data = await odds.get_odds(client)
 
-    # Placeholder for your actual model logic
     return {
         "model_used": model,
         "year": year,
