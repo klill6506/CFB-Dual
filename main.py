@@ -8,8 +8,9 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# --- Force OpenAPI schema with servers ---
 def custom_openapi():
+    if app.openapi_schema:  # ✅ don’t rebuild if already cached
+        return app.openapi_schema
     print("🔧 custom_openapi override is running!")  # Debug log
     openapi_schema = get_openapi(
         title=app.title,
@@ -17,14 +18,13 @@ def custom_openapi():
         description="API for College Football Dual Model",
         routes=app.routes,
     )
-    # ✅ Explicit servers block
     openapi_schema["servers"] = [
         {"url": "https://cfbdual2.onrender.com"}
     ]
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 
-# Assign override
+# ✅ assign *after* defining, before routes get hit
 app.openapi = custom_openapi
 
 
