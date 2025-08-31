@@ -33,8 +33,12 @@ async def build_game_data(year: int = 2024):
 # Prediction Endpoint
 # -------------------------------
 @app.get("/predict")
-async def predict(model: str = Query("conservative", enum=["conservative", "aggressive", "both"]), year: int = 2024):
+from datetime import datetime
+
+@app.get("/predict")
+async def predict(model: str = "conservative", year: int = datetime.now().year):
     game_data = await build_game_data(year)
+    ...
 
     if model == "conservative":
         return {"model": "conservative", "result": "Conservative prediction logic TBD", "data": game_data}
