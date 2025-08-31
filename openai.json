@@ -1,9 +1,9 @@
 {
-  "openapi": "3.1.0",
+  "openapi": "3.0.0",
   "info": {
     "title": "CFB Dual API",
     "version": "1.0.0",
-    "description": "College Football Dual API for stats and analysis"
+    "description": "API for College Football Dual Model"
   },
   "servers": [
     {
@@ -11,23 +11,38 @@
     }
   ],
   "paths": {
+    "/": {
+      "get": {
+        "summary": "Root",
+        "operationId": "root",
+        "responses": {
+          "200": {
+            "description": "Root status",
+            "content": {
+              "application/json": {
+                "example": { "message": "CFB Dual API is running!" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/games": {
       "get": {
-        "summary": "Get games by team and year",
+        "summary": "Get games for a team",
+        "operationId": "get_games",
         "parameters": [
           {
             "name": "team",
             "in": "query",
             "required": true,
-            "schema": { "type": "string" },
-            "description": "Team name (e.g. Alabama)"
+            "schema": { "type": "string" }
           },
           {
             "name": "year",
             "in": "query",
-            "required": true,
-            "schema": { "type": "integer" },
-            "description": "Season year (e.g. 2025)"
+            "required": false,
+            "schema": { "type": "integer", "default": 2025 }
           }
         ],
         "responses": {
@@ -35,9 +50,8 @@
             "description": "List of games",
             "content": {
               "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": { "type": "object" }
+                "example": {
+                  "games": ["Game1", "Game2"]
                 }
               }
             }
@@ -45,19 +59,33 @@
         }
       }
     },
-    "/health": {
+    "/predict": {
       "get": {
-        "summary": "Health check",
+        "summary": "Run prediction",
+        "operationId": "predict",
+        "parameters": [
+          {
+            "name": "model",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "default": "conservative" }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 2025 }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "API is healthy",
+            "description": "Prediction result",
             "content": {
               "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": { "type": "string" }
-                  }
+                "example": {
+                  "model_used": "conservative",
+                  "year": 2025,
+                  "prediction": "This is a stub prediction."
                 }
               }
             }
