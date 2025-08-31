@@ -5,7 +5,7 @@ from typing import Optional, Dict, Any, List
 CFBD_BASE = "https://api.collegefootballdata.com"
 ODDS_BASE = "https://api.the-odds-api.com/v4/sports/americanfootball_ncaaf"
 
-def env(key: str, default: Optional[str]=None) -> Optional[str]:
+def env(key: str, default: Optional[str] = None) -> Optional[str]:
     return os.getenv(key, default)
 
 class CFBDClient:
@@ -14,24 +14,45 @@ class CFBDClient:
         self.headers = {"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}
 
     async def get_games_for_team(self, client: httpx.AsyncClient, year: int, team: str) -> List[Dict[str, Any]]:
-        r = await client.get(f"{CFBD_BASE}/games", params={"year": year, "team": team, "seasonType": "both"}, headers=self.headers, timeout=30)
-        r.raise_for_status()
-        return r.json()
+        try:
+            r = await client.get(
+                f"{CFBD_BASE}/games",
+                params={"year": year, "team": team, "seasonType": "both"},
+                headers=self.headers,
+                timeout=30,
+            )
+            r.raise_for_status()
+            return r.json()
+        except Exception as e:
+            print(f"Error fetching games for {team} in {year}: {e}")
+            return []
 
     async def get_venues(self, client: httpx.AsyncClient) -> List[Dict[str, Any]]:
-        r = await client.get(f"{CFBD_BASE}/venues", headers=self.headers, timeout=30)
-        r.raise_for_status()
-        return r.json()
+        try:
+            r = await client.get(f"{CFBD_BASE}/venues", headers=self.headers, timeout=30)
+            r.raise_for_status()
+            return r.json()
+        except Exception as e:
+            print(f"Error fetching venues: {e}")
+            return []
 
     async def get_sp_ratings(self, client: httpx.AsyncClient, year: int) -> List[Dict[str, Any]]:
-        r = await client.get(f"{CFBD_BASE}/ratings/sp", params={"year": year}, headers=self.headers, timeout=30)
-        r.raise_for_status()
-        return r.json()
+        try:
+            r = await client.get(f"{CFBD_BASE}/ratings/sp", params={"year": year}, headers=self.headers, timeout=30)
+            r.raise_for_status()
+            return r.json()
+        except Exception as e:
+            print(f"Error fetching SP ratings for {year}: {e}")
+            return []
 
     async def get_team_season_stats(self, client: httpx.AsyncClient, year: int) -> List[Dict[str, Any]]:
-        r = await client.get(f"{CFBD_BASE}/stats/season", params={"year": year}, headers=self.headers, timeout=30)
-        r.raise_for_status()
-        return r.json()
+        try:
+            r = await client.get(f"{CFBD_BASE}/stats/season", params={"year": year}, headers=self.headers, timeout=30)
+            r.raise_for_status()
+            return r.json()
+        except Exception as e:
+            print(f"Error fetching team season stats for {year}: {e}")
+            return []
 
     async def get_team_ppa(self, client: httpx.AsyncClient, year: int) -> List[Dict[str, Any]]:
         url = f"{CFBD_BASE}/metrics/ppa/teams"
@@ -39,7 +60,8 @@ class CFBDClient:
             r = await client.get(url, params={"year": year}, headers=self.headers, timeout=30)
             r.raise_for_status()
             return r.json()
-        except httpx.HTTPStatusError:
+        except Exception as e:
+            print(f"Error fetching team PPA for {year}: {e}")
             return []
 
 class OddsClient:
@@ -52,8 +74,12 @@ class OddsClient:
             "markets": "h2h,spreads,totals",
             "oddsFormat": "american",
             "dateFormat": "iso",
-            "apiKey": self.api_key
+            "apiKey": self.api_key,
         }
-        r = await client.get(f"{ODDS_BASE}/odds", params=params, timeout=30)
-        r.raise_for_status()
-        return r.json()
+        try:
+            r = await client.get(f"{ODDS_BASE}/odds", params=params, timeout=30)
+            r.raise_for_status()
+            return r.json()
+        except Exception as e:
+            print(f"Error fetching odds: {e}")
+            return []
