@@ -5,7 +5,7 @@ class CFBDClient:
     BASE_URL = "https://api.collegefootballdata.com"
 
     def __init__(self):
-        self.api_key = os.getenv("CFBD_API_KEY", "YOUR_KEY_HERE")  # fallback for Pyto
+        self.api_key = os.getenv("CFBD_API_KEY", "juKNtF767RJrxEQYHr/uyFsNnTw6IXtJdOvqmLyNEw6wc/JPKFr5WL+8ecFqc4VU")  # fallback for Pyto
 
     async def get_games_for_team(self, client, year: int, team: str):
         headers = {"Authorization": f"Bearer {self.api_key}"}
