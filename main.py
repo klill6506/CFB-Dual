@@ -10,6 +10,7 @@ app = FastAPI(
         {"url": "https://cfbdual2.onrender.com", "description": "Render deployment"}
     ],
 )
+
 cfbd_client = CFBDClient()
 odds_client = OddsClient()
 
@@ -34,16 +35,17 @@ async def get_games(team: str, year: int = 2025):
 @app.get("/predict")
 async def predict(model: str = "conservative", year: int = 2025):
     try:
-        # Map model → config filename
+        # Pick config file based on model name
         config_file = f"config_{model}.yaml"
 
-        predictor = Predictor(config_path=config_file, model=model)
+        # Load predictor with just the config file
+        predictor = Predictor(config_path=config_file)
 
         # Fetch stats + odds
         stats = await cfbd_client.get_team_season_stats(http_client, year=year)
         odds = await odds_client.get_odds(http_client)
 
-        # Example evaluation (placeholder numbers until you plug in your calc)
+        # Example evaluation (placeholder numbers until calc is wired in)
         example_game = {"predicted_spread": -3}
         example_odds = {"spread": -1}
         results = predictor.evaluate_game(example_game, example_odds)
