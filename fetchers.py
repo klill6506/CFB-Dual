@@ -11,7 +11,7 @@ class CFBDClient:
     async def _safe_get(self, client: httpx.AsyncClient, endpoint: str, params=None):
         url = f"{self.BASE_URL}{endpoint}"
         headers = {"Authorization": f"Bearer {CFBD_API_KEY}"}
-        resp = await client.get(url, headers=headers, params=params)
+        resp = await client.get(url, headers=headers, params=params, timeout=60.0)
 
         if resp.status_code != 200:
             print("⚠️ CFBD ERROR", resp.status_code, resp.text)  # Debug info
