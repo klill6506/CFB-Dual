@@ -1,7 +1,5 @@
 import httpx
 
-import httpx
-
 # 🔑 Hardcoded API keys
 CFBD_API_KEY = "juKNtF767RJrxEQYHr/uyFsNnTw6IXtJdOvqmLyNEw6wc/JPKFr5WL+8ecFqc4VU"
 ODDS_API_KEY = "e13fa7a40bc707bb7738b7e08a451760"
