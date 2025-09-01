@@ -1,5 +1,8 @@
 import httpx
 
+print("DEBUG CFBD_API_KEY =", repr(CFBD_API_KEY))
+print("DEBUG ODDS_API_KEY =", repr(ODDS_API_KEY))
+
 class CFBDClient:
     def __init__(self):
         # 🔑 Hardcoded CFBD API key
