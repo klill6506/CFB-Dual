@@ -1,55 +1,59 @@
 import httpx
-from fastapi import FastAPI, Query
-from fetchers import CFBDClient, OddsClient
+from fastapi import FastAPI
 from predictor import Predictor
+from fetchers import CFBDClient, OddsClient
 
 app = FastAPI()
 
 cfbd_client = CFBDClient()
 odds_client = OddsClient()
 
+# Reuse a single HTTP client for performance
+http_client = httpx.AsyncClient(timeout=20.0)
+
+
 @app.get("/")
 async def root():
-    return {"message": "College Football Prediction API is live!"}
+    return {"message": "CFB Prediction API is running"}
 
 
 @app.get("/games")
 async def get_games(team: str, year: int = 2025):
-    async with httpx.AsyncClient(timeout=30.0) as http_client:
+    try:
         games = await cfbd_client.get_games_for_team(http_client, year=year, team=team)
-    return games
+        return {"team": team, "year": year, "games": games}
+    except Exception as e:
+        return {"error": str(e)}
 
 
 @app.get("/predict")
-async def predict(
-    model: str = Query("conservative", description="Prediction model type"),
-    year: int = Query(2025, description="Season year"),
-    team: str = Query("Alabama", description="Team to analyze")
-):
-    async with httpx.AsyncClient(timeout=30.0) as http_client:
-        # Pull season stats + odds
+async def predict(model: str = "conservative", year: int = 2025):
+    try:
+        # Map model → config filename
+        config_file = f"config_{model}.yaml"
+
+        predictor = Predictor(config_path=config_file, model=model)
+
+        # Fetch stats + odds
         stats = await cfbd_client.get_team_season_stats(http_client, year=year)
         odds = await odds_client.get_odds(http_client)
 
-    # For now: stub one game data
-    # Replace this with real matchup stats later
-    game_data = {
-        "predicted_spread": -6.5,
-        "team": team,
-        "year": year,
-    }
+        # Example evaluation (placeholder numbers until you plug in your calc)
+        example_game = {"predicted_spread": -3}
+        example_odds = {"spread": -1}
+        results = predictor.evaluate_game(example_game, example_odds)
 
-    # Example: pick the first odds line
-    odds_line = {"spread": -3.5}
+        return {
+            "model_used": model,
+            "year": year,
+            "stats_count": len(stats) if stats else 0,
+            "odds_count": len(odds) if odds else 0,
+            "results": results,
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
-    predictor = Predictor(config_path="config.yaml", model=model)
-    result = predictor.evaluate_game(game_data, odds_line)
 
-    return {
-        "model_used": model,
-        "team": team,
-        "year": year,
-        "stats_count": len(stats),
-        "odds_count": len(odds),
-        "prediction": result,
-    }
+@app.on_event("shutdown")
+async def shutdown_event():
+    await http_client.aclose()
