@@ -4,71 +4,50 @@ import httpx
 CFBD_API_KEY = "juKNtF767RJrxEQYHr/uyFsNnTw6IXtJdOvqmLyNEw6wc/JPKFr5WL+8ecFqc4VU"
 ODDS_API_KEY = "e13fa7a40bc707bb7738b7e08a451760"
 
-# 🐞 Debug: confirm keys are set
-print("DEBUG CFBD_API_KEY =", repr(CFBD_API_KEY))
-print("DEBUG ODDS_API_KEY =", repr(ODDS_API_KEY))
 
 class CFBDClient:
-    def __init__(self):
-        # 🔑 Hardcoded CFBD API key
-        self.api_key = "juKNtF767RJrxEQYHr/uyFsNnTw6IXtJdOvqmLyNEw6wc/JPKFr5WL+8ecFqc4VU"
-        self.base_url = "https://api.collegefootballdata.com"
+    BASE_URL = "https://api.collegefootballdata.com"
 
-    async def _safe_get(self, client, endpoint, params=None):
-        url = f"{self.base_url}{endpoint}"
-        headers = {}
-
-        # ✅ Only add Authorization if key exists
-        if self.api_key and self.api_key.strip():
-            headers["Authorization"] = f"Bearer {self.api_key}"
-
+    async def _safe_get(self, client: httpx.AsyncClient, endpoint: str, params=None):
+        url = f"{self.BASE_URL}{endpoint}"
+        headers = {"Authorization": f"Bearer {CFBD_API_KEY}"}
         resp = await client.get(url, headers=headers, params=params)
-        resp.raise_for_status()
-        return resp.json()
 
-    async def get_games_for_team(self, client, year: int, team: str):
+        if resp.status_code != 200:
+            print("⚠️ CFBD ERROR", resp.status_code, resp.text)  # Debug info
+            resp.raise_for_status()
+
+        try:
+            return resp.json()
+        except Exception as e:
+            print("⚠️ JSON decode failed from CFBD:", e, "Response was:", resp.text)
+            raise
+
+    async def get_games_for_team(self, client: httpx.AsyncClient, year: int, team: str):
         return await self._safe_get(client, "/games", params={"year": year, "team": team})
 
-    async def get_team_season_stats(self, client, year: int):
+    async def get_team_season_stats(self, client: httpx.AsyncClient, year: int):
         return await self._safe_get(client, "/stats/season", params={"year": year})
-
-    async def get_team_ppa(self, client, year: int):
-        return await self._safe_get(client, "/ppa/teams", params={"year": year})
-
-    async def get_venues(self, client):
-        return await self._safe_get(client, "/venues")
-
-    async def get_sp_ratings(self, client, year: int):
-        return await self._safe_get(client, "/ratings/sp", params={"year": year})
 
 
 class OddsClient:
-    def __init__(self):
-        # 🔑 Hardcoded Odds API key
-        self.api_key = "e13fa7a40bc707bb7738b7e08a451760"
-        self.base_url = "https://api.the-odds-api.com/v4"
+    BASE_URL = "https://api.the-odds-api.com/v4"
 
-    async def _safe_get(self, client, endpoint, params=None):
-        if params is None:
-            params = {}
-
-        # The Odds API usually requires apiKey in query string
-        params["apiKey"] = self.api_key
-
-        url = f"{self.base_url}{endpoint}"
-        headers = {}
-
-        # ✅ Some Odds endpoints may accept Bearer, add it only if key exists
-        if self.api_key and self.api_key.strip():
-            headers["Authorization"] = f"Bearer {self.api_key}"
-
+    async def _safe_get(self, client: httpx.AsyncClient, endpoint: str, params=None):
+        url = f"{self.BASE_URL}{endpoint}"
+        headers = {"x-api-key": ODDS_API_KEY}
         resp = await client.get(url, headers=headers, params=params)
-        resp.raise_for_status()
-        return resp.json()
 
-    async def get_odds(self, client, sport="americanfootball_ncaaf", regions="us"):
-        return await self._safe_get(
-            client,
-            f"/sports/{sport}/odds",
-            params={"regions": regions}
-        )
+        if resp.status_code != 200:
+            print("⚠️ ODDS API ERROR", resp.status_code, resp.text)  # Debug info
+            resp.raise_for_status()
+
+        try:
+            return resp.json()
+        except Exception as e:
+            print("⚠️ JSON decode failed from Odds API:", e, "Response was:", resp.text)
+            raise
+
+    async def get_odds(self, client: httpx.AsyncClient, sport: str = "americanfootball_ncaaf", regions: str = "us"):
+        """Fetch odds for college football games"""
+        return await self._safe_get(client, f"/sports/{sport}/odds", params={"regions": regions})
