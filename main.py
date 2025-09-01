@@ -11,25 +11,18 @@ app = FastAPI(
     description="API for College Football Dual Model"
 )
 
-# --- Serve static OpenAPI JSON files ---
+# --- Serve static OpenAPI JSON at the exact path GPT Builder expects ---
 BASE_DIR = os.path.dirname(__file__)
 
-@app.get("/static-openapi.json", include_in_schema=False)
+@app.get("/openapi.json", include_in_schema=False)
 async def get_openapi_json():
-    """Serve the manually defined openapi.json file."""
+    """Serve the manually defined openapi.json file at the standard location."""
     return FileResponse(os.path.join(BASE_DIR, "openapi.json"))
-
-@app.get("/static-openapi-schema.json", include_in_schema=False)
-async def get_openapi_schema():
-    """Serve the manually defined openapi_schema.json file."""
-    return FileResponse(os.path.join(BASE_DIR, "openapi_schema.json"))
-
 
 # --- Root endpoint ---
 @app.get("/")
 async def root():
     return {"message": "CFB Dual API is running!"}
-
 
 # --- Games endpoint ---
 @app.get("/games")
@@ -38,7 +31,6 @@ async def get_games(team: str, year: int = 2025):
     async with httpx.AsyncClient() as http_client:
         games = await client.get_games_for_team(http_client, year=year, team=team)
     return {"team": team, "year": year, "games": games}
-
 
 # --- Predict endpoint ---
 @app.get("/predict")
