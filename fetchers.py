@@ -1,5 +1,12 @@
 import httpx
 
+import httpx
+
+# 🔑 Hardcoded API keys
+CFBD_API_KEY = "juKNtF767RJrxEQYHr/uyFsNnTw6IXtJdOvqmLyNEw6wc/JPKFr5WL+8ecFqc4VU"
+ODDS_API_KEY = "e13fa7a40bc707bb7738b7e08a451760"
+
+# 🐞 Debug: confirm keys are set
 print("DEBUG CFBD_API_KEY =", repr(CFBD_API_KEY))
 print("DEBUG ODDS_API_KEY =", repr(ODDS_API_KEY))
 
