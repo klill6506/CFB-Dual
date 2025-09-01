@@ -3,8 +3,13 @@ from fastapi import FastAPI
 from predictor import Predictor
 from fetchers import CFBDClient, OddsClient
 
-app = FastAPI()
-
+app = FastAPI(
+    title="College Football Predictions API",
+    version="1.0.0",
+    servers=[
+        {"url": "https://cfbdual2.onrender.com", "description": "Render deployment"}
+    ],
+)
 cfbd_client = CFBDClient()
 odds_client = OddsClient()
 
