@@ -1,0 +1,83 @@
+{
+  "openapi": "3.0.2",
+  "info": {
+    "title": "College Football Predictor API",
+    "version": "1.0.0",
+    "description": "API for fetching CFB games and running predictions using conservative or aggressive models."
+  },
+  "paths": {
+    "/games": {
+      "get": {
+        "summary": "Get games for a team",
+        "operationId": "getGames",
+        "parameters": [
+          {
+            "name": "team",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Team name (e.g., 'Alabama')."
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "integer" },
+            "description": "Season year (e.g., 2025)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of games for the given team and year",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "type": "object" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/predict": {
+      "get": {
+        "summary": "Run prediction model",
+        "operationId": "getPrediction",
+        "parameters": [
+          {
+            "name": "model",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "enum": ["conservative", "aggressive"] },
+            "description": "Prediction model type."
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "integer" },
+            "description": "Season year (e.g., 2025)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Prediction results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "model_used": { "type": "string" },
+                    "year": { "type": "integer" },
+                    "stats_count": { "type": "integer" },
+                    "odds_count": { "type": "integer" },
+                    "prediction": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
