@@ -1,61 +1,53 @@
 import httpx
-import os
 
 class CFBDClient:
     def __init__(self):
-        self.api_key = os.getenv("CFBD_API_KEY", "").strip()
+        # 🔑 Hardcoded CFBD API key
+        self.api_key = "juKNtF767RJrxEQYHr/uyFsNnTw6IXtJdOvqmLyNEw6wc/JPKFr5WL+8ecFqc4VU"
         self.base_url = "https://api.collegefootballdata.com"
 
-    async def _safe_get(self, client: httpx.AsyncClient, endpoint: str, params: dict = None):
+    async def _safe_get(self, client, endpoint, params=None):
         url = f"{self.base_url}{endpoint}"
         headers = {"Authorization": f"Bearer {self.api_key}"}
         resp = await client.get(url, headers=headers, params=params)
-        try:
-            resp.raise_for_status()
-            return resp.json()
-        except Exception:
-            return {
-                "error": resp.status_code,
-                "url": url,
-                "body": resp.text[:300]  # show first 300 chars
-            }
+        resp.raise_for_status()
+        return resp.json()
 
-    async def get_games_for_team(self, client, year: int, team: str):
+    async def get_games_for_team(self, client, year, team):
         return await self._safe_get(client, "/games", params={"year": year, "team": team})
 
-    async def get_team_season_stats(self, client, year: int):
+    async def get_team_season_stats(self, client, year):
         return await self._safe_get(client, "/stats/season", params={"year": year})
 
-    async def get_team_ppa(self, client, year: int):
+    async def get_team_ppa(self, client, year):
         return await self._safe_get(client, "/ppa/teams", params={"year": year})
 
     async def get_venues(self, client):
         return await self._safe_get(client, "/venues")
 
-    async def get_sp_ratings(self, client, year: int):
+    async def get_sp_ratings(self, client, year):
         return await self._safe_get(client, "/ratings/sp", params={"year": year})
 
 
 class OddsClient:
     def __init__(self):
-        self.api_key = os.getenv("ODDS_API_KEY", "").strip()
-        self.base_url = "https://api.the-odds-api.com/v4/sports/americanfootball_ncaaf"
+        # 🔑 Hardcoded Odds API key
+        self.api_key = "e13fa7a40bc707bb7738b7e08a451760"
+        self.base_url = "https://api.the-odds-api.com/v4"
 
-    async def _safe_get(self, client: httpx.AsyncClient, endpoint: str, params: dict = None):
+    async def _safe_get(self, client, endpoint, params=None):
         url = f"{self.base_url}{endpoint}"
-        if params is None:
-            params = {}
-        params["apiKey"] = self.api_key
-        resp = await client.get(url, params=params)
-        try:
-            resp.raise_for_status()
-            return resp.json()
-        except Exception:
-            return {
-                "error": resp.status_code,
-                "url": url,
-                "body": resp.text[:300]
-            }
+        headers = {}
+        if self.api_key:
+            params = params or {}
+            params["apiKey"] = self.api_key
+        resp = await client.get(url, headers=headers, params=params)
+        resp.raise_for_status()
+        return resp.json()
 
-    async def get_odds(self, client):
-        return await self._safe_get(client, "/odds", params={"regions": "us", "markets": "h2h"})
+    async def get_odds(self, client, sport="americanfootball_ncaaf", regions="us", markets="h2h,spreads", oddsFormat="decimal"):
+        return await self._safe_get(
+            client,
+            f"/sports/{sport}/odds",
+            params={"regions": regions, "markets": markets, "oddsFormat": oddsFormat}
+        )
