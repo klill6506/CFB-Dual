@@ -28,26 +28,34 @@ class CFBDClient:
 
     async def get_team_season_stats(self, client: httpx.AsyncClient, year: int):
         return await self._safe_get(client, "/stats/season", params={"year": year})
-
-
+        
 class OddsClient:
     BASE_URL = "https://api.the-odds-api.com/v4"
 
-    async def _safe_get(self, client: httpx.AsyncClient, endpoint: str, params=None):
-        url = f"{self.BASE_URL}{endpoint}"
-        headers = {"x-api-key": ODDS_API_KEY}
-        resp = await client.get(url, headers=headers, params=params)
+    def __init__(self, sport="americanfootball_ncaaf", regions="us"):
+        self.sport = sport
+        self.regions = regions
 
-        if resp.status_code != 200:
-            print("⚠️ ODDS API ERROR", resp.status_code, resp.text)  # Debug info
-            resp.raise_for_status()
-
+    async def _safe_get(self, client: httpx.AsyncClient, path: str, params: dict):
+        # Always attach API key in params
+        params["apiKey"] = ODDS_API_KEY
+        url = f"{self.BASE_URL}{path}"
         try:
+            resp = await client.get(url, params=params, timeout=30.0)
+            resp.raise_for_status()
             return resp.json()
-        except Exception as e:
-            print("⚠️ JSON decode failed from Odds API:", e, "Response was:", resp.text)
-            raise
+        except httpx.HTTPStatusError as e:
+            print(f"⚠️ ODDS API ERROR {e.response.status_code} {e.response.text}")
+            return {"error": f"HTTP {e.response.status_code}", "details": e.response.text}
+        except httpx.RequestError as e:
+            print(f"⚠️ ODDS API REQUEST ERROR: {e}")
+            return {"error": "Request failed", "details": str(e)}
 
-    async def get_odds(self, client: httpx.AsyncClient, sport: str = "americanfootball_ncaaf", regions: str = "us"):
-        """Fetch odds for college football games"""
-        return await self._safe_get(client, f"/sports/{sport}/odds", params={"regions": regions})
+    async def get_odds(self, client: httpx.AsyncClient):
+        """
+        Fetch odds for the configured sport.
+        """
+        params = {"regions": self.regions}
+        return await self._safe_get(client, f"/sports/{self.sport}/odds", params=params)
+
+
